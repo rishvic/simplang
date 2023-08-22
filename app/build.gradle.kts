@@ -16,6 +16,10 @@ repositories {
 }
 
 dependencies {
+    // Picocli CLI framework.
+    implementation("info.picocli:picocli:4.7.4")
+    annotationProcessor("info.picocli:picocli-codegen:4.7.4")
+
     // Use JUnit Jupiter for testing.
     testImplementation("org.junit.jupiter:junit-jupiter:5.9.3")
 
@@ -40,4 +44,8 @@ application {
 tasks.named<Test>("test") {
     // Use JUnit Platform for unit tests.
     useJUnitPlatform()
+}
+
+tasks.named<JavaCompile>("compileJava") {
+    options.compilerArgs.add("-Aproject=${project.group}/${project.name}")
 }

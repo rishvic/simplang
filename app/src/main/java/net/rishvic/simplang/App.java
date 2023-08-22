@@ -3,12 +3,28 @@
  */
 package net.rishvic.simplang;
 
-public class App {
+import java.util.concurrent.Callable;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+
+@Command(
+    name = "simplang",
+    mixinStandardHelpOptions = true,
+    version = "SimpLang v1.0.0-SNAPSHOT",
+    description = "Parses & analyzes SimpLang language specifications.")
+public class App implements Callable<Integer> {
   public String getGreeting() {
     return "Hello World!";
   }
 
-  public static void main(String[] args) {
+  @Override
+  public Integer call() throws Exception {
     System.out.println(new App().getGreeting());
+    return null;
+  }
+
+  public static void main(String[] args) {
+    int exitCode = new CommandLine(new App()).execute(args);
+    System.exit(exitCode);
   }
 }
