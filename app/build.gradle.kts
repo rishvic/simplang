@@ -6,6 +6,9 @@
  */
 
 plugins {
+    // ANTLR Gradle plugin.
+    antlr
+
     // Apply the application plugin to add support for building a CLI application in Java.
     application
 }
@@ -16,6 +19,10 @@ repositories {
 }
 
 dependencies {
+    // ANTLR grammar parser.
+    antlr("org.antlr:antlr4:4.13.0")
+    implementation("org.antlr:antlr4-runtime:4.13.0")
+
     // Picocli CLI framework.
     implementation("info.picocli:picocli:4.7.4")
     annotationProcessor("info.picocli:picocli-codegen:4.7.4")
@@ -48,4 +55,8 @@ tasks.named<Test>("test") {
 
 tasks.named<JavaCompile>("compileJava") {
     options.compilerArgs.add("-Aproject=${project.group}/${project.name}")
+}
+
+tasks.named<AntlrTask>("generateGrammarSource") {
+    arguments = arguments + listOf("-no-listener", "-visitor", "-package", "net.rishvic.simplang.antlr")
 }
