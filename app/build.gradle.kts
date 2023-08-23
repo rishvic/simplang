@@ -27,6 +27,13 @@ dependencies {
     implementation("info.picocli:picocli:4.7.4")
     annotationProcessor("info.picocli:picocli-codegen:4.7.4")
 
+    // JGraphT graph library.
+    implementation("org.jgrapht:jgrapht-core:1.5.2")
+
+    // Flogger: Fluent logging API.
+    implementation("com.google.flogger:flogger:0.7.4")
+    implementation("com.google.flogger:flogger-system-backend:0.7.4")
+
     // Use JUnit Jupiter for testing.
     testImplementation("org.junit.jupiter:junit-jupiter:5.9.3")
 

@@ -54,6 +54,10 @@ STRING
    : '"' (ESC | SAFECODEPOINT)* '"'
    ;
 
+LineComment
+   : '//' ~[\r\n]* -> channel(HIDDEN)
+   ;
+
 WS
    : [ \t]+ -> channel(HIDDEN)
    ;
