@@ -4,9 +4,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.concurrent.Callable;
 import net.rishvic.simplang.antlr.SimpLangLexer;
 import net.rishvic.simplang.antlr.SimpLangParser;
+import net.rishvic.simplang.compiler.Driver;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -36,7 +38,10 @@ public class App implements Callable<Integer> {
     SimpLangParser parser = new SimpLangParser(tokenStream);
     ParseTree tree = parser.source();
 
-    System.out.println(tree.toStringTree(parser));
+    Driver compiler = new Driver();
+    compiler.visit(tree);
+    System.out.println(compiler.getProductionRules());
+    System.out.println(compiler.getTerminalRules());
 
     return 0;
   }
