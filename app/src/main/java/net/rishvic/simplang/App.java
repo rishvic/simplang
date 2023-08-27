@@ -47,16 +47,19 @@ public class App implements Callable<Integer> {
     Driver compiler = new Driver();
     compiler.visit(tree);
 
-    logger.atInfo().log("Initial rules: %s", compiler.getProductionRules());
+    System.out.println("Initial rules:");
+    System.out.printf("%s", Simplifications.toPrettyString(compiler.getProductionRules()));
 
     Map<String, List<List<String>>> noLeftRecRuleset =
         Simplifications.removeLeftRecursion(compiler.getProductionRules());
 
-    logger.atInfo().log("Rules after removing left recursion: %s", noLeftRecRuleset);
+    System.out.println("Rules after removing left recursion:");
+    System.out.printf("%s", Simplifications.toPrettyString(noLeftRecRuleset));
 
     Map<String, List<List<String>>> simpleRuleset = Simplifications.leftFactor(noLeftRecRuleset);
 
-    logger.atInfo().log("Rules after removing left factoring: %s", simpleRuleset);
+    System.out.println("Rules after removing left factoring:");
+    System.out.printf("%s", Simplifications.toPrettyString(simpleRuleset));
 
     return 0;
   }

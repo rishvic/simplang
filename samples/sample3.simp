@@ -1,5 +1,2 @@
 A -> a B | a B a | a B a a ;
 B -> B a | %empty ;
-
-//nnn*n++
-//nn+nnn+++

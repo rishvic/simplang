@@ -2,9 +2,12 @@ package net.rishvic.simplang.analysis;
 
 import com.google.common.flogger.FluentLogger;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.KosarajuStrongConnectivityInspector;
 import org.jgrapht.alg.interfaces.StrongConnectivityAlgorithm;
@@ -166,6 +169,48 @@ public class Simplifications {
     }
 
     return rules;
+  }
+
+  public static String toPrettyString(Map<String, List<List<String>>> rules) {
+    StringBuilder sb = new StringBuilder();
+
+    if (rules.isEmpty()) {
+      return "ϕ\n";
+    }
+
+    for (Map.Entry<String, List<List<String>>> entry : rules.entrySet()) {
+      String nonTerminal = entry.getKey();
+      List<List<String>> ruleset = entry.getValue();
+
+      if (ruleset.isEmpty()) {
+        sb.append(nonTerminal).append(" -> ϕ\n");
+        continue;
+      }
+
+      if (nonTerminal.length() == 1) {
+        sb.append(nonTerminal).append(" ->");
+      } else {
+        sb.append(nonTerminal).append("\n  ->");
+      }
+
+      for (int i = 0; i < ruleset.size(); i++) {
+        if (ruleset.get(i).isEmpty()) {
+          sb.append(" ϵ");
+        } else {
+          for (String symbol : ruleset.get(i)) {
+            sb.append(' ').append(symbol);
+          }
+        }
+
+        if (i == ruleset.size() - 1) {
+          sb.append('\n').append("   ;\n\n");
+        } else {
+          sb.append('\n').append("   |");
+        }
+      }
+    }
+
+    return sb.toString();
   }
 
   private static class TrieNode {
