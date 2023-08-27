@@ -141,4 +141,91 @@ public class Simplifications {
 
     return newRules;
   }
+
+  public static Map<String, List<List<String>>> leftFactor(Map<String, List<List<String>>> rules) {
+    Map<String, TrieNode> reductions = new HashMap<>();
+
+    for (Map.Entry<String, List<List<String>>> entry : rules.entrySet()) {
+      String nonTerminal = entry.getKey();
+      List<List<String>> ruleset = entry.getValue();
+
+      TrieNode root = new TrieNode();
+      for (List<String> rule : ruleset) {
+        root.addRule(rule);
+      }
+      root.reduce(reductions, nonTerminal + "-");
+
+      entry.setValue(root.genRuleset(new ArrayList<>()));
+    }
+
+    for (Map.Entry<String, TrieNode> entry : reductions.entrySet()) {
+      String nonTerminal = entry.getKey();
+      TrieNode node = entry.getValue();
+
+      rules.put(nonTerminal, node.genRuleset(new ArrayList<>()));
+    }
+
+    return rules;
+  }
+
+  private static class TrieNode {
+    int out;
+    Map<String, TrieNode> child;
+
+    public TrieNode() {
+      out = 0;
+      child = new HashMap<>();
+    }
+
+    void addRule(List<String> rule) {
+      TrieNode node = this;
+      for (String symbol : rule) {
+        if (!node.child.containsKey(symbol)) {
+          TrieNode newNode = new TrieNode();
+          node.child.put(symbol, newNode);
+          node = newNode;
+        } else {
+          node = node.child.get(symbol);
+        }
+      }
+
+      node.out++;
+    }
+
+    void reduce(Map<String, TrieNode> reductions, String prefix) {
+      for (Map.Entry<String, TrieNode> entry : child.entrySet()) {
+        String childSymbol = entry.getKey();
+        TrieNode childNode = entry.getValue();
+        String childPrefix = prefix + childSymbol;
+
+        childNode.reduce(reductions, childPrefix + '.');
+        if (childNode.child.size() + childNode.out <= 1) continue;
+
+        reductions.put(childPrefix, childNode);
+
+        TrieNode newChildNode = new TrieNode();
+        newChildNode.addRule(List.of(childPrefix));
+        entry.setValue(newChildNode);
+      }
+    }
+
+    List<List<String>> genRuleset(List<String> prefix) {
+      List<List<String>> ruleset = new ArrayList<>();
+      if (out > 0) {
+        ruleset.add(new ArrayList<>(prefix));
+      }
+
+      for (Map.Entry<String, TrieNode> entry : child.entrySet()) {
+        String childSymbol = entry.getKey();
+        TrieNode childNode = entry.getValue();
+        prefix.add(childSymbol);
+
+        ruleset.addAll(childNode.genRuleset(prefix));
+
+        prefix.remove(prefix.size() - 1);
+      }
+
+      return ruleset;
+    }
+  }
 }

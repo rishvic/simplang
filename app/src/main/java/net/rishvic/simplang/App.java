@@ -54,6 +54,10 @@ public class App implements Callable<Integer> {
 
     logger.atInfo().log("Rules after removing left recursion: %s", noLeftRecRuleset);
 
+    Map<String, List<List<String>>> simpleRuleset = Simplifications.leftFactor(noLeftRecRuleset);
+
+    logger.atInfo().log("Rules after removing left factoring: %s", simpleRuleset);
+
     return 0;
   }
 
