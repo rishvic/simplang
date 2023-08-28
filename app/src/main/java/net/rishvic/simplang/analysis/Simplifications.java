@@ -357,7 +357,7 @@ public class Simplifications {
               followGraph.addEdge(symbol, nonTerminal);
             }
             followSet.get(symbol).addAll(symbols);
-            if (emptySymbols.contains(symbol)) {
+            if (!emptySymbols.contains(symbol)) {
               isEnding = false;
               symbols.clear();
             }
@@ -372,6 +372,7 @@ public class Simplifications {
         new KosarajuStrongConnectivityInspector<>(followGraph);
     List<Graph<String, DefaultEdge>> components = scAlg.getStronglyConnectedComponents();
     reverse(components);
+    logger.atInfo().log("Components = %s", components);
 
     Map<String, Integer> symbolToId = new HashMap<>();
     for (int i = 0; i < components.size(); i++) {
