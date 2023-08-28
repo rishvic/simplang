@@ -48,18 +48,25 @@ public class App implements Callable<Integer> {
     compiler.visit(tree);
 
     System.out.println("Initial rules:");
-    System.out.printf("%s", Simplifications.toPrettyString(compiler.getProductionRules()));
+    System.out.printf(
+        "%s",
+        Simplifications.toPrettyString(compiler.getProductionRules(), compiler.getTerminalRules()));
 
     Map<String, List<List<String>>> noLeftRecRuleset =
         Simplifications.removeLeftRecursion(compiler.getProductionRules());
 
     System.out.println("Rules after removing left recursion:");
-    System.out.printf("%s", Simplifications.toPrettyString(noLeftRecRuleset));
+    System.out.printf(
+        "%s", Simplifications.toPrettyString(noLeftRecRuleset, compiler.getTerminalRules()));
 
     Map<String, List<List<String>>> simpleRuleset = Simplifications.leftFactor(noLeftRecRuleset);
 
     System.out.println("Rules after removing left factoring:");
-    System.out.printf("%s", Simplifications.toPrettyString(simpleRuleset));
+    System.out.printf(
+        "%s", Simplifications.toPrettyString(simpleRuleset, compiler.getTerminalRules()));
+
+    System.out.println("First set of rules:");
+    System.out.printf("%s\n", Simplifications.firstSet(simpleRuleset));
 
     return 0;
   }

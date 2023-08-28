@@ -1,12 +1,17 @@
 package net.rishvic.simplang.analysis;
 
+import static java.util.Collections.reverse;
+
 import com.google.common.flogger.FluentLogger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.KosarajuStrongConnectivityInspector;
 import org.jgrapht.alg.interfaces.StrongConnectivityAlgorithm;
@@ -249,7 +254,76 @@ public class Simplifications {
     return rules;
   }
 
-  public static String toPrettyString(Map<String, List<List<String>>> rules) {
+  public static Map<String, Set<String>> firstSet(Map<String, List<List<String>>> rules) {
+    Map<String, Set<String>> firstSet = new HashMap<>();
+    Graph<String, DefaultEdge> firstGraph = new DefaultDirectedGraph<>(DefaultEdge.class);
+    Set<String> emptySymbols = getEpsilonRules(rules).keySet();
+
+    for (String nonTerminal : rules.keySet()) {
+      firstGraph.addVertex(nonTerminal);
+    }
+
+    for (Map.Entry<String, List<List<String>>> entry : rules.entrySet()) {
+      String nonTerminal = entry.getKey();
+      List<List<String>> ruleset = entry.getValue();
+      for (List<String> rule : ruleset) {
+        for (String symbol : rule) {
+          if (!isNonTerminal(symbol)) break;
+          firstGraph.addEdge(nonTerminal, symbol);
+          if (!emptySymbols.contains(symbol)) break;
+        }
+      }
+    }
+
+    StrongConnectivityAlgorithm<String, DefaultEdge> scAlg =
+        new KosarajuStrongConnectivityInspector<>(firstGraph);
+    List<Graph<String, DefaultEdge>> components = scAlg.getStronglyConnectedComponents();
+    reverse(components);
+
+    Map<String, Integer> symbolToId = new HashMap<>();
+    for (int i = 0; i < components.size(); i++) {
+      for (String symbol : components.get(i).vertexSet()) {
+        symbolToId.put(symbol, i);
+      }
+    }
+
+    List<Set<String>> componentFirsts = new ArrayList<>(components.size());
+    for (Graph<String, DefaultEdge> component : components) {
+      Set<String> firsts = new HashSet<>();
+      for (String nonTerminal : component.vertexSet()) {
+        for (List<String> rule : rules.get(nonTerminal)) {
+          for (String symbol : rule) {
+            if (isTerminal(symbol)) {
+              firsts.add(symbol);
+            }
+            if (isNonTerminal(symbol)) {
+              if (!Objects.equals(symbolToId.get(symbol), symbolToId.get(nonTerminal))) {
+                firsts.addAll(componentFirsts.get(symbolToId.get(symbol)));
+              }
+            }
+            if (!emptySymbols.contains(symbol)) {
+              break;
+            }
+          }
+        }
+      }
+      componentFirsts.add(firsts);
+    }
+
+    for (String nonTerminal : rules.keySet()) {
+      firstSet.put(nonTerminal, new HashSet<>(componentFirsts.get(symbolToId.get(nonTerminal))));
+      firstGraph.addVertex(nonTerminal);
+    }
+
+    for (String nonTerminal : emptySymbols) {
+      firstSet.get(nonTerminal).add("%empty");
+    }
+
+    return firstSet;
+  }
+
+  public static String toPrettyString(
+      Map<String, List<List<String>>> rules, Map<String, String> terminalAliases) {
     StringBuilder sb = new StringBuilder();
 
     if (rules.isEmpty()) {
@@ -276,7 +350,7 @@ public class Simplifications {
           sb.append(" ϵ");
         } else {
           for (String symbol : ruleset.get(i)) {
-            sb.append(' ').append(symbol);
+            sb.append(' ').append(terminalAliases.getOrDefault(symbol, symbol));
           }
         }
 
