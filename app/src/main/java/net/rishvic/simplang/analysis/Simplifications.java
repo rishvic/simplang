@@ -1,13 +1,12 @@
 package net.rishvic.simplang.analysis;
 
 import com.google.common.flogger.FluentLogger;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.KosarajuStrongConnectivityInspector;
 import org.jgrapht.alg.interfaces.StrongConnectivityAlgorithm;
@@ -26,6 +25,49 @@ public class Simplifications {
     return !symbol.isEmpty() && Character.isLowerCase(symbol.charAt(0));
   }
 
+  public static Map<String, List<List<String>>> getEpsilonRules(
+      Map<String, List<List<String>>> rules) {
+    Map<String, List<List<String>>> emptyRules = new HashMap<>();
+
+    boolean updated;
+    do {
+      updated = false;
+
+      for (Map.Entry<String, List<List<String>>> entry : rules.entrySet()) {
+        String nonTerminal = entry.getKey();
+        List<List<String>> ruleset = entry.getValue();
+
+        for (List<String> rule : ruleset) {
+          if (emptyRules.containsKey(nonTerminal) && emptyRules.get(nonTerminal).contains(rule)) {
+            continue;
+          }
+
+          boolean isEmpty = true;
+          for (String symbol : rule) {
+            if (isTerminal(symbol) || !emptyRules.containsKey(symbol)) {
+              isEmpty = false;
+              break;
+            }
+          }
+
+          if (isEmpty) {
+            if (emptyRules.containsKey(nonTerminal)) {
+              emptyRules.get(nonTerminal).add(rule);
+            } else {
+              List<List<String>> emptyRuleset = new ArrayList<>();
+              emptyRuleset.add(rule);
+              emptyRules.put(nonTerminal, emptyRuleset);
+            }
+            updated = true;
+          }
+        }
+      }
+
+    } while (updated);
+
+    return emptyRules;
+  }
+
   public static Map<String, List<List<String>>> removeLeftRecursion(
       Map<String, List<List<String>>> rules) {
     Map<String, List<List<String>>> oldRules;
@@ -41,12 +83,18 @@ public class Simplifications {
         firstSymGraph.addVertex(s);
       }
 
+      Map<String, List<List<String>>> oldEmptyRules = getEpsilonRules(oldRules);
+
       for (Map.Entry<String, List<List<String>>> entry : oldRules.entrySet()) {
         for (List<String> rule : entry.getValue()) {
-          if (rule.isEmpty()) continue;
-          String firstSymbol = rule.get(0);
-          if (isNonTerminal(firstSymbol)) {
-            firstSymGraph.addEdge(entry.getKey(), firstSymbol);
+          for (String symbol : rule) {
+            if (isNonTerminal(symbol)) {
+              firstSymGraph.addEdge(entry.getKey(), symbol);
+            }
+
+            if (!oldEmptyRules.containsKey(symbol)) {
+              break;
+            }
           }
         }
       }
@@ -71,23 +119,53 @@ public class Simplifications {
         newRules.put(nonTerm, ruleset);
 
         for (List<String> rule : oldRules.get(nonTerm)) {
-          if (rule.isEmpty()) {
+          boolean toResolve = false;
+          for (String symbol : rule) {
+            if (!isNonTerminal(symbol)) {
+              break;
+            }
+            if (symbol.equals(nonTerm) || symbolToId.get(symbol) < symbolToId.get(nonTerm)) {
+              toResolve = true;
+              break;
+            }
+            if (!oldEmptyRules.containsKey(symbol)) {
+              break;
+            }
+          }
+
+          if (!toResolve) {
             ruleset.add(rule);
             continue;
           }
 
-          String firstSymbol = rule.get(0);
-          if (!isNonTerminal(firstSymbol)
-              || symbolToId.get(firstSymbol) >= symbolToId.get(nonTerm)) {
-            ruleset.add(rule);
-            continue;
-          }
+          Deque<List<String>> processQueue = new ArrayDeque<>();
+          processQueue.add(rule);
 
-          for (List<String> fsRule : newRules.get(firstSymbol)) {
-            List<String> newRule = new ArrayList<>(fsRule);
-            int ruleSize = rule.size();
-            newRule.addAll(rule.subList(1, ruleSize));
-            ruleset.add(newRule);
+          while (!processQueue.isEmpty()) {
+            List<String> ruleToProcess = processQueue.remove();
+            String firstSymbol = ruleToProcess.get(0);
+            if (firstSymbol.equals(nonTerm)) {
+              ruleset.add(ruleToProcess);
+            } else if (symbolToId.get(firstSymbol) < symbolToId.get(nonTerm)) {
+              for (List<String> fsRule : newRules.get(firstSymbol)) {
+                List<String> newRule = new ArrayList<>(fsRule);
+                int ruleSize = ruleToProcess.size();
+                newRule.addAll(ruleToProcess.subList(1, ruleSize));
+                ruleset.add(newRule);
+              }
+            } else {
+              for (List<String> fsRule : oldRules.get(firstSymbol)) {
+                List<String> newRule = new ArrayList<>(fsRule);
+                int ruleSize = ruleToProcess.size();
+                newRule.addAll(ruleToProcess.subList(1, ruleSize));
+
+                if (oldEmptyRules.get(firstSymbol).contains(fsRule)) {
+                  processQueue.add(newRule);
+                } else {
+                  ruleset.add(newRule);
+                }
+              }
+            }
           }
         }
       }

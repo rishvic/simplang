@@ -1,0 +1,2 @@
+X -> Y X a ;
+Y -> b | c X d | Y e | %empty ;
