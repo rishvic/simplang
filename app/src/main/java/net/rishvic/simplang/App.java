@@ -120,6 +120,8 @@ class FirstFollow implements Callable<Integer> {
         Simplifications.leftFactor(
             Simplifications.removeLeftRecursion(compiler.getProductionRules()));
     Map<String, String> terminalAliases = compiler.getTerminalRules();
+    terminalAliases.put("%empty", "ϵ");
+    terminalAliases.put("%eof", "$");
 
     Map<String, Set<String>> firstSet = Simplifications.firstSet(simplifiedGrammar);
     Map<String, Set<String>> followSet = Simplifications.followSet(simplifiedGrammar, startSymbol);
