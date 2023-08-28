@@ -95,6 +95,9 @@ class FirstFollow implements Callable<Integer> {
   @Option(names = "-o", defaultValue = "First-Follow.csv")
   String outFile;
 
+  @Option(names = "-S", required = true)
+  String startSymbol;
+
   @Override
   public Integer call() throws IOException {
     InputStream inputStream = new FileInputStream(file);
@@ -114,15 +117,18 @@ class FirstFollow implements Callable<Integer> {
             Simplifications.removeLeftRecursion(compiler.getProductionRules()));
 
     Map<String, Set<String>> firstSet = Simplifications.firstSet(simplifiedGrammar);
+    Map<String, Set<String>> followSet = Simplifications.followSet(simplifiedGrammar, startSymbol);
 
     try (final CSVPrinter printer =
         new CSVPrinter(
             new FileWriter(outFile),
-            CSVFormat.RFC4180.builder().setHeader("Nonterminal", "FIRST").build())) {
+            CSVFormat.RFC4180.builder().setHeader("Nonterminal", "FIRST", "FOLLOW").build())) {
       for (String symbol : simplifiedGrammar.keySet()) {
-        StringJoiner sj = new StringJoiner(",");
-        firstSet.get(symbol).forEach(sj::add);
-        printer.printRecord(symbol, sj.toString());
+        StringJoiner sj1 = new StringJoiner(",");
+        StringJoiner sj2 = new StringJoiner(",");
+        firstSet.get(symbol).forEach(sj1::add);
+        followSet.get(symbol).forEach(sj2::add);
+        printer.printRecord(symbol, sj1.toString(), sj2.toString());
       }
     }
 

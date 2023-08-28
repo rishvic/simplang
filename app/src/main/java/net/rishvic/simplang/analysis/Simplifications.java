@@ -11,6 +11,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -322,6 +323,83 @@ public class Simplifications {
     }
 
     return firstSet;
+  }
+
+  public static Map<String, Set<String>> followSet(
+      Map<String, List<List<String>>> rules, String start) {
+    Graph<String, DefaultEdge> followGraph = new DefaultDirectedGraph<>(DefaultEdge.class);
+    Set<String> emptySymbols = getEpsilonRules(rules).keySet();
+    Map<String, Set<String>> followSet = new HashMap<>();
+    Map<String, Set<String>> firstSet = firstSet(rules);
+
+    for (String nonTerminal : rules.keySet()) {
+      followSet.put(nonTerminal, new HashSet<>());
+      followGraph.addVertex(nonTerminal);
+    }
+    followSet.get(start).add("%eof");
+
+    for (Map.Entry<String, List<List<String>>> entry : rules.entrySet()) {
+      String nonTerminal = entry.getKey();
+      for (List<String> rule : entry.getValue()) {
+        boolean isEnding = true;
+        Set<String> symbols = new HashSet<>();
+        for (int i = rule.size() - 1; i >= 0; i--) {
+          String symbol = rule.get(i);
+
+          if (isTerminal(symbol)) {
+            isEnding = false;
+            symbols.clear();
+            symbols.add(symbol);
+          }
+
+          if (isNonTerminal(symbol)) {
+            if (isEnding) {
+              followGraph.addEdge(symbol, nonTerminal);
+            }
+            followSet.get(symbol).addAll(symbols);
+            if (emptySymbols.contains(symbol)) {
+              isEnding = false;
+              symbols.clear();
+            }
+            symbols.addAll(firstSet.get(symbol));
+            symbols.remove("%empty");
+          }
+        }
+      }
+    }
+
+    StrongConnectivityAlgorithm<String, DefaultEdge> scAlg =
+        new KosarajuStrongConnectivityInspector<>(followGraph);
+    List<Graph<String, DefaultEdge>> components = scAlg.getStronglyConnectedComponents();
+    reverse(components);
+
+    Map<String, Integer> symbolToId = new HashMap<>();
+    for (int i = 0; i < components.size(); i++) {
+      for (String symbol : components.get(i).vertexSet()) {
+        symbolToId.put(symbol, i);
+      }
+    }
+
+    List<Set<String>> componentFollows = new ArrayList<>();
+    for (Graph<String, DefaultEdge> component : components) {
+      Set<String> componentFollow = new HashSet<>();
+      for (String nonTerminal : component.vertexSet()) {
+        componentFollow.addAll(followSet.get(nonTerminal));
+        for (DefaultEdge edge : followGraph.outgoingEdgesOf(nonTerminal)) {
+          String nextNonTerminal = followGraph.getEdgeTarget(edge);
+          if (!Objects.equals(symbolToId.get(nextNonTerminal), symbolToId.get(nonTerminal))) {
+            componentFollow.addAll(componentFollows.get(symbolToId.get(nextNonTerminal)));
+          }
+        }
+      }
+      componentFollows.add(componentFollow);
+    }
+
+    for (Map.Entry<String, Integer> entry : symbolToId.entrySet()) {
+      followSet.get(entry.getKey()).addAll(componentFollows.get(entry.getValue()));
+    }
+
+    return followSet;
   }
 
   public static String toGrammarString(
