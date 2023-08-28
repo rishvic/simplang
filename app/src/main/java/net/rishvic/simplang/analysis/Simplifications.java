@@ -115,7 +115,7 @@ public class Simplifications {
           continue;
         }
 
-        String newNonTerm = nonTerm + "_r";
+        String newNonTerm = nonTerm + '\'';
 
         List<List<String>> existingSet = new ArrayList<>(bRuleset);
         List<List<String>> newTermSet = new ArrayList<>(aRuleset);
@@ -156,7 +156,7 @@ public class Simplifications {
       for (List<String> rule : ruleset) {
         root.addRule(rule);
       }
-      root.reduce(reductions, nonTerminal + "-");
+      root.reduce(reductions, nonTerminal + '+');
 
       entry.setValue(root.genRuleset(new ArrayList<>()));
     }

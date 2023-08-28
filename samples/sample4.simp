@@ -1,0 +1,108 @@
+P
+  -> prog DL SL end
+   ;
+
+DL
+  -> D DL
+   | %empty
+   ;
+
+D
+  -> TY VL semi
+   ;
+
+TY
+  -> int
+   | float
+   ;
+
+VL
+  -> id VL
+   | id
+   ;
+
+SL
+  -> S SL
+   | %empty
+   ;
+
+S
+  -> ES
+   | IS
+   | WS
+   | IOS
+   ;
+
+ES
+  -> id assign E semi
+   ;
+
+IS
+  -> if BE then SL end
+   | if BE then SL else SL end
+   ;
+
+WS
+  -> while BE do SL end
+   ;
+
+IOS
+  -> print PE
+   | scan id
+   ;
+
+PE
+  -> E
+   | str
+   ;
+
+BE
+  -> BE or AE
+   | AE
+   ;
+
+AE
+  -> AE and NE
+   | NE
+   ;
+
+NE
+  -> not NE
+   | lbrace BE rbrace
+   | RE
+   ;
+
+RE
+  -> E (equal | less | greater) E
+   ;
+
+E
+  -> E (plus | minus) T
+   | T
+   ;
+
+T
+  -> T (star | slash) F
+   | F
+   ;
+
+F
+  -> lparen E rparen
+   | id
+   | ic
+   | fc
+   ;
+
+semi -> ";" ;
+assign -> ":=" ;
+lbrace -> "{" ;
+rbrace -> "}" ;
+equal -> "=" ;
+less -> "<" ;
+greater -> ">" ;
+plus -> "+" ;
+minus -> "-" ;
+star -> "*" ;
+slash -> "/" ;
+lparen -> "(" ;
+rparen -> ")" ;
