@@ -30,6 +30,12 @@ dependencies {
     // JGraphT graph library.
     implementation("org.jgrapht:jgrapht-core:1.5.2")
 
+    // Jackson JSON library.
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
+
+    // Apache Commons CSV
+    implementation("org.apache.commons:commons-csv:1.10.0")
+
     // Flogger: Fluent logging API.
     implementation("com.google.flogger:flogger:0.7.4")
     implementation("com.google.flogger:flogger-system-backend:0.7.4")

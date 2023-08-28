@@ -2,6 +2,8 @@ package net.rishvic.simplang.analysis;
 
 import static java.util.Collections.reverse;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.flogger.FluentLogger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -320,6 +322,58 @@ public class Simplifications {
     }
 
     return firstSet;
+  }
+
+  public static String toGrammarString(
+      Map<String, List<List<String>>> rules, Map<String, String> terminalAliases)
+      throws JsonProcessingException {
+    StringBuilder sb = new StringBuilder();
+
+    if (rules.isEmpty()) {
+      return "\n";
+    }
+
+    for (Map.Entry<String, List<List<String>>> entry : rules.entrySet()) {
+      String nonTerminal = entry.getKey();
+      List<List<String>> ruleset = entry.getValue();
+
+      if (ruleset.isEmpty()) {
+        continue;
+      }
+
+      if (nonTerminal.length() == 1) {
+        sb.append(nonTerminal).append(" ->");
+      } else {
+        sb.append(nonTerminal).append("\n  ->");
+      }
+
+      for (int i = 0; i < ruleset.size(); i++) {
+        if (ruleset.get(i).isEmpty()) {
+          sb.append(" %empty");
+        } else {
+          for (String symbol : ruleset.get(i)) {
+            sb.append(' ').append(symbol);
+          }
+        }
+
+        if (i == ruleset.size() - 1) {
+          sb.append('\n').append("   ;\n\n");
+        } else {
+          sb.append('\n').append("   |");
+        }
+      }
+    }
+
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    for (Map.Entry<String, String> terminalAlias : terminalAliases.entrySet()) {
+      sb.append(terminalAlias.getKey())
+          .append(" -> ")
+          .append(objectMapper.writeValueAsString(terminalAlias.getValue()))
+          .append("\n");
+    }
+
+    return sb.toString();
   }
 
   public static String toPrettyString(

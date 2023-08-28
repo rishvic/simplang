@@ -1,0 +1,120 @@
+E'
+  -> ϵ
+   | - T E'
+   | + T E'
+   ;
+
+AE'
+  -> ϵ
+   | and NE AE'
+   ;
+
+BE
+  -> AE BE'
+   ;
+
+D -> TY VL ;
+   ;
+
+BE'
+  -> ϵ
+   | or AE BE'
+   ;
+
+TY
+  -> float
+   | int
+   ;
+
+E -> T E'
+   ;
+
+F -> ic
+   | id
+   | ( E )
+   | fc
+   ;
+
+DL
+  -> ϵ
+   | D DL
+   ;
+
+RE+E
+  -> = E
+   | < E
+   | > E
+   ;
+
+VL+id
+  -> ϵ
+   | VL
+   ;
+
+P -> prog DL SL end
+   ;
+
+IS+if.BE.then.SL
+  -> else SL end
+   | end
+   ;
+
+T'
+  -> ϵ
+   | * F T'
+   | / F T'
+   ;
+
+S -> IS
+   | WS
+   | IOS
+   | ES
+   ;
+
+T -> F T'
+   ;
+
+SL
+  -> ϵ
+   | S SL
+   ;
+
+WS
+  -> while BE do SL end
+   ;
+
+AE
+  -> NE AE'
+   ;
+
+IS
+  -> if BE then SL IS+if.BE.then.SL
+   ;
+
+IOS
+  -> print PE
+   | scan id
+   ;
+
+ES
+  -> id := E ;
+   ;
+
+RE
+  -> E RE+E
+   ;
+
+PE
+  -> str
+   | E
+   ;
+
+VL
+  -> id VL+id
+   ;
+
+NE
+  -> not NE
+   | { BE }
+   | RE
+   ;

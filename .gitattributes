@@ -7,3 +7,6 @@
 # These are Windows script files and should use crlf
 *.bat           text eol=crlf
 
+# CSV files must end with crlf according to RFC 4180
+*.csv           text eol=crlf
+
