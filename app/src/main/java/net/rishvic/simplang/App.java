@@ -20,6 +20,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.text.StringEscapeUtils;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -98,6 +99,9 @@ class FirstFollow implements Callable<Integer> {
   @Option(names = "-S", required = true)
   String startSymbol;
 
+  @Option(names = "-p", description = "Pretty print grammar")
+  boolean pretty;
+
   @Override
   public Integer call() throws IOException {
     InputStream inputStream = new FileInputStream(file);
@@ -115,6 +119,7 @@ class FirstFollow implements Callable<Integer> {
     Map<String, List<List<String>>> simplifiedGrammar =
         Simplifications.leftFactor(
             Simplifications.removeLeftRecursion(compiler.getProductionRules()));
+    Map<String, String> terminalAliases = compiler.getTerminalRules();
 
     Map<String, Set<String>> firstSet = Simplifications.firstSet(simplifiedGrammar);
     Map<String, Set<String>> followSet = Simplifications.followSet(simplifiedGrammar, startSymbol);
@@ -126,8 +131,22 @@ class FirstFollow implements Callable<Integer> {
       for (String symbol : simplifiedGrammar.keySet()) {
         StringJoiner sj1 = new StringJoiner(",");
         StringJoiner sj2 = new StringJoiner(",");
-        firstSet.get(symbol).forEach(sj1::add);
-        followSet.get(symbol).forEach(sj2::add);
+        firstSet.get(symbol).stream()
+            .map(
+                firstSymbol ->
+                    StringEscapeUtils.escapeCsv(
+                        pretty
+                            ? terminalAliases.getOrDefault(firstSymbol, firstSymbol)
+                            : firstSymbol))
+            .forEach(sj1::add);
+        followSet.get(symbol).stream()
+            .map(
+                followSymbol ->
+                    StringEscapeUtils.escapeCsv(
+                        pretty
+                            ? terminalAliases.getOrDefault(followSymbol, followSymbol)
+                            : followSymbol))
+            .forEach(sj2::add);
         printer.printRecord(symbol, sj1.toString(), sj2.toString());
       }
     }

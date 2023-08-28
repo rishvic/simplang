@@ -33,8 +33,9 @@ dependencies {
     // Jackson JSON library.
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
 
-    // Apache Commons CSV
+    // Apache Commons Libraries.
     implementation("org.apache.commons:commons-csv:1.10.0")
+    implementation("org.apache.commons:commons-text:1.10.0")
 
     // Flogger: Fluent logging API.
     implementation("com.google.flogger:flogger:0.7.4")
