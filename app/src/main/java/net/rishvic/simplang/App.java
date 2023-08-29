@@ -6,6 +6,8 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -193,9 +195,6 @@ class Parser implements Callable<Integer> {
 
     System.out.printf(
         """
-            #ifndef SIMPLE_LANGUAGE_TABLE_H_
-            #define SIMPLE_LANGUAGE_TABLE_H_
-
             #include <stddef.h>
 
             #define TERMINAL_COUNT %d
@@ -231,6 +230,24 @@ class Parser implements Callable<Integer> {
 
     System.out.println();
 
+    StringJoiner symbolRepListJoiner =
+        new StringJoiner(
+            ",\n    ",
+            String.format(
+                "char *symbol_reps[%d] = {\n    ",
+                table.getTerminals().size() + table.getNonTerminals().size()),
+            "};\n");
+
+    table.getTerminals().stream()
+        .map(symbol -> Simplifications.symbolMacro(symbol) + "_STR")
+        .forEachOrdered(symbolRepListJoiner::add);
+
+    table.getNonTerminals().stream()
+        .map(symbol -> Simplifications.symbolMacro(symbol) + "_STR")
+        .forEachOrdered(symbolRepListJoiner::add);
+
+    System.out.println(symbolRepListJoiner);
+
     for (int i = 0; i < table.getRuleList().size(); i++) {
       StringJoiner ruleJoiner =
           new StringJoiner(
@@ -238,9 +255,9 @@ class Parser implements Callable<Integer> {
               String.format("int rule%d[%d] = {", i, table.getRuleList().get(i).size() + 1),
               "};\n");
 
-      table.getRuleList().get(i).stream()
-          .map(Simplifications::symbolMacro)
-          .forEachOrdered(ruleJoiner::add);
+      List<String> reversedRule = new ArrayList<>(table.getRuleList().get(i));
+      Collections.reverse(reversedRule);
+      reversedRule.stream().map(Simplifications::symbolMacro).forEachOrdered(ruleJoiner::add);
       ruleJoiner.add("-1");
       System.out.printf("%s", ruleJoiner.toString());
     }
@@ -261,9 +278,6 @@ class Parser implements Callable<Integer> {
     }
     System.out.println();
     System.out.printf("%s", tableJoiner);
-
-    System.out.println();
-    System.out.println("#endif /* SIMPLE_LANGUAGE_TABLE_H_ */");
     return 0;
   }
 }

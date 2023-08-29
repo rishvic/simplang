@@ -2,6 +2,5 @@ S -> n B ;
 B -> n B A B | %empty ;
 A -> plus | cross ;
 
-n     -> "n" ;
 plus  -> "+" ;
 cross -> "×" ;
