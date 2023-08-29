@@ -19,16 +19,18 @@ FLEX_TARGET(Grammar2 grammar2/grammar2.l ${CMAKE_CURRENT_BINARY_DIR}/grammar2.yy
 # Create target and set properties.
 
 add_executable(grammar1
-  grammar1/grammar1.c
+  grammar.c
   grammar1/grammar1.tab.c
   ${FLEX_Grammar1_OUTPUTS}
 )
+target_compile_definitions(grammar1 PRIVATE USE_GRAMMAR1)
 
 add_executable(grammar2
-  grammar2/grammar2.c
+  grammar.c
   grammar2/grammar2.tab.c
   ${FLEX_Grammar2_OUTPUTS}
 )
+target_compile_definitions(grammar2 PRIVATE USE_GRAMMAR2)
 
 #Set target properties
 foreach(grammar IN ITEMS grammar1 grammar2)

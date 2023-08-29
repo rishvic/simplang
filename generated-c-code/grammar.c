@@ -1,11 +1,20 @@
 #include <stdio.h>
+#include <stdlib.h>
 
+#if defined(USE_GRAMMAR1)
 #include "grammar1.tab.h"
 #include "grammar1.yy.h"
+#elif defined(USE_GRAMMAR2)
+#include "grammar2.tab.h"
+#include "grammar2.yy.h"
+#else
+#error "No grammar specified"
+#endif
 
 #define CSI_RESET "\e[0m"
 #define CSI_UNDERLINE "\e[4m"
 #define CSI_BOLD "\e[1m"
+#define CSI_ITALIC "\e[3m"
 
 int buf[4096];
 size_t buf_scanned = 0, buf_consumed = 0;
@@ -40,10 +49,17 @@ int main(void) {
   int i;
   int udp, rule_sz;
   int *rule;
+#if defined(USE_GRAMMAR1)
+  int start_rule = S;
+  const char start_rule_str[] = S_STR;
+#elif defined(USE_GRAMMAR2)
+  int start_rule = P;
+  const char start_rule_str[] = P_STR;
+#endif
 
   stack[stack_sz++] = YYEOF;
-  stack[stack_sz++] = S;
-  printf("   " CSI_BOLD "%s" CSI_RESET " %s\n", S_STR, YYEOF_STR);
+  stack[stack_sz++] = start_rule;
+  printf("   %s%s%s %s\n", CSI_BOLD, start_rule_str, CSI_RESET, YYEOF_STR);
 
   while (stack_sz > 0) {
     stack_symbol = stack[--stack_sz];
