@@ -55,11 +55,14 @@ int main(void) {
 #elif defined(USE_GRAMMAR2)
   int start_rule = P;
   const char start_rule_str[] = P_STR;
+#else
+#error "No grammar specified"
 #endif
 
   stack[stack_sz++] = YYEOF;
   stack[stack_sz++] = start_rule;
-  printf("   %s%s%s %s\n", CSI_BOLD, start_rule_str, CSI_RESET, YYEOF_STR);
+  printf("   %s%s%s%s %s\n", CSI_BOLD, CSI_ITALIC, start_rule_str, CSI_RESET,
+         YYEOF_STR);
 
   while (stack_sz > 0) {
     stack_symbol = stack[--stack_sz];
@@ -91,10 +94,10 @@ int main(void) {
       printf("->");
       if (term_sz <= 3) {
         for (i = 0; i < term_sz; i++) {
-          printf(" %s", symbol_reps[term_stack[i]]);
+          printf(" %s%s%s", "", symbol_reps[term_stack[i]], CSI_RESET);
         }
       } else {
-        printf(" ... %s", symbol_reps[term_stack[term_sz - 1]]);
+        printf(" %s...%s", CSI_ITALIC, CSI_RESET);
       }
 
       udp = 0;
@@ -104,10 +107,12 @@ int main(void) {
           stack_symbol = stack[stack_sz - i - 1];
           if (!udp && stack_symbol >= TERMINAL_COUNT) {
             udp = 1;
-            printf("%s%s%s%s%s", i ? " " : "", CSI_BOLD,
+            printf("%s%s%s%s%s%s", i ? " " : "", CSI_BOLD, CSI_ITALIC,
                    symbol_reps[stack_symbol], CSI_RESET, CSI_UNDERLINE);
           } else {
-            printf("%s%s", i ? " " : "", symbol_reps[stack_symbol]);
+            printf("%s%s%s%s%s", i ? " " : "",
+                   stack_symbol >= TERMINAL_COUNT ? CSI_ITALIC : "",
+                   symbol_reps[stack_symbol], CSI_RESET, CSI_UNDERLINE);
           }
         }
         printf("%s", CSI_RESET);
@@ -117,9 +122,11 @@ int main(void) {
         stack_symbol = stack[stack_sz - i - 1];
         if (!udp && stack_symbol >= TERMINAL_COUNT) {
           udp = 1;
-          printf(" " CSI_BOLD "%s" CSI_RESET, symbol_reps[stack_symbol]);
+          printf(" %s%s%s%s", CSI_BOLD, CSI_ITALIC, symbol_reps[stack_symbol],
+                 CSI_RESET);
         } else {
-          printf(" %s", symbol_reps[stack_symbol]);
+          printf(" %s%s%s", stack_symbol >= TERMINAL_COUNT ? CSI_ITALIC : "",
+                 symbol_reps[stack_symbol], CSI_RESET);
         }
       }
       printf("\n");
