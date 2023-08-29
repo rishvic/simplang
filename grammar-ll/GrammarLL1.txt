@@ -1,13 +1,10 @@
-A -> cross
-   | plus
+A -> ×
+   | +
    ;
 
-B -> %empty
+B -> ϵ
    | n B A B
    ;
 
 S -> n B
    ;
-
-cross -> "×"
-plus -> "+"

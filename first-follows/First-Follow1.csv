@@ -1,4 +1,4 @@
 Nonterminal,FIRST,FOLLOW
-A,"cross,plus","%eof,cross,n,plus"
-B,"%empty,n","%eof,cross,plus"
-S,n,%eof
+A,"×,+","$,×,n,+"
+B,"ϵ,n","$,×,+"
+S,n,$
