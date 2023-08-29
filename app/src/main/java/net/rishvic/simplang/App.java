@@ -1,5 +1,6 @@
 package net.rishvic.simplang;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
@@ -10,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.concurrent.Callable;
+import net.rishvic.simplang.analysis.ParseTable;
 import net.rishvic.simplang.analysis.Simplifications;
 import net.rishvic.simplang.antlr.SimpLangLexer;
 import net.rishvic.simplang.antlr.SimpLangParser;
@@ -31,7 +33,7 @@ import picocli.CommandLine.Parameters;
     mixinStandardHelpOptions = true,
     version = "SimpLang v1.0.0-SNAPSHOT",
     description = "Parses & analyzes SimpLang language specifications.",
-    subcommands = {Simplify.class, FirstFollow.class})
+    subcommands = {Simplify.class, FirstFollow.class, Parser.class})
 public class App implements Callable<Integer> {
   public static void main(String[] args) {
     int exitCode = new CommandLine(new App()).execute(args);
@@ -153,6 +155,115 @@ class FirstFollow implements Callable<Integer> {
       }
     }
 
+    return 0;
+  }
+}
+
+@Command(
+    name = "ll-parser",
+    mixinStandardHelpOptions = true,
+    description = "Generates LL(1) parse table")
+class Parser implements Callable<Integer> {
+
+  @Parameters(index = "0")
+  File file;
+
+  @Option(names = "-S", required = true)
+  String startSymbol;
+
+  @Override
+  public Integer call() throws IOException {
+    InputStream inputStream = new FileInputStream(file);
+    CharStream charStream = CharStreams.fromStream(inputStream);
+
+    SimpLangLexer lexer = new SimpLangLexer(charStream);
+    CommonTokenStream tokenStream = new CommonTokenStream(lexer);
+
+    SimpLangParser parser = new SimpLangParser(tokenStream);
+    ParseTree tree = parser.source();
+
+    Driver compiler = new Driver();
+    compiler.visit(tree);
+
+    Map<String, List<List<String>>> simplifiedGrammar =
+        Simplifications.leftFactor(
+            Simplifications.removeLeftRecursion(compiler.getProductionRules()));
+
+    ParseTable table = new ParseTable(simplifiedGrammar, startSymbol);
+
+    System.out.printf(
+        """
+            #ifndef SIMPLE_LANGUAGE_TABLE_H_
+            #define SIMPLE_LANGUAGE_TABLE_H_
+
+            #include <stddef.h>
+
+            #define TERMINAL_COUNT %d
+            #define NONTERMINAL_COUNT %d
+
+            """,
+        table.getTerminals().size(), table.getNonTerminals().size());
+
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    for (String terminal : table.getTerminals()) {
+      String terminalMacro = Simplifications.symbolMacro(terminal);
+      String terminalRep =
+          terminal.equals("%eof")
+              ? "$"
+              : compiler.getTerminalRules().containsKey(terminal)
+                  ? objectMapper.writeValueAsString(compiler.getTerminalRules().get(terminal))
+                  : terminal;
+
+      System.out.printf("#define %s %s\n", terminalMacro, table.getSymbolToId().get(terminal));
+      System.out.printf(
+          "#define %s_STR %s\n", terminalMacro, objectMapper.writeValueAsString(terminalRep));
+    }
+    System.out.println();
+
+    for (String nonTerminal : table.getNonTerminals()) {
+      String nonTerminalMacro = Simplifications.symbolMacro(nonTerminal);
+      System.out.printf(
+          "#define %s %s\n", nonTerminalMacro, table.getSymbolToId().get(nonTerminal));
+      System.out.printf(
+          "#define %s_STR %s\n", nonTerminalMacro, objectMapper.writeValueAsString(nonTerminal));
+    }
+
+    System.out.println();
+
+    for (int i = 0; i < table.getRuleList().size(); i++) {
+      StringJoiner ruleJoiner =
+          new StringJoiner(
+              ", ",
+              String.format("int rule%d[%d] = {", i, table.getRuleList().get(i).size() + 1),
+              "};\n");
+
+      table.getRuleList().get(i).stream()
+          .map(Simplifications::symbolMacro)
+          .forEachOrdered(ruleJoiner::add);
+      ruleJoiner.add("-1");
+      System.out.printf("%s", ruleJoiner.toString());
+    }
+
+    StringJoiner tableJoiner =
+        new StringJoiner(
+            ",\n",
+            String.format(
+                "int *yytab[%d][%d] = {\n",
+                table.getNonTerminals().size(), table.getTerminals().size()),
+            ",\n};\n");
+    for (List<Integer> row : table.getParseTable()) {
+      StringJoiner rowJoiner = new StringJoiner(", ", "    {", "}");
+      row.stream()
+          .map(ruleId -> ruleId < 0 ? "NULL" : "rule" + ruleId)
+          .forEachOrdered(rowJoiner::add);
+      tableJoiner.add(rowJoiner.toString());
+    }
+    System.out.println();
+    System.out.printf("%s", tableJoiner);
+
+    System.out.println();
+    System.out.println("#endif /* SIMPLE_LANGUAGE_TABLE_H_ */");
     return 0;
   }
 }

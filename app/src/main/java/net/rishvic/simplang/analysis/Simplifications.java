@@ -11,7 +11,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -30,7 +29,26 @@ public class Simplifications {
   }
 
   public static boolean isTerminal(String symbol) {
-    return !symbol.isEmpty() && Character.isLowerCase(symbol.charAt(0));
+    return !symbol.isEmpty() && (Character.isLowerCase(symbol.charAt(0)) || symbol.equals("%eof"));
+  }
+
+  public static String symbolMacro(String symbol) {
+    if (Objects.equals(symbol, "%eof")) {
+      return "YYEOF";
+    }
+
+    String macroValue =
+        symbol
+            .toUpperCase()
+            .replace("'", "_r")
+            .replace("+", "_p_")
+            .replace(".", "_n_")
+            .replace("%", "YY")
+            .replaceAll("[^0-9A-Za-z_]", "_");
+
+    if (isTerminal(symbol)) return "TOK_" + macroValue;
+    if (isNonTerminal(symbol)) return macroValue;
+    return "YYUNKNOWN_" + macroValue;
   }
 
   public static Map<String, List<List<String>>> getEpsilonRules(
@@ -257,6 +275,30 @@ public class Simplifications {
     return rules;
   }
 
+  public static Set<String> firstSet(List<String> rule, Map<String, Set<String>> firstSet) {
+    Set<String> ruleFirstSet = new HashSet<>();
+
+    boolean isEps = true;
+    for (String symbol : rule) {
+      if (isTerminal(symbol)) {
+        isEps = false;
+        ruleFirstSet.add(symbol);
+        break;
+      }
+      if (isNonTerminal(symbol)) {
+        ruleFirstSet.addAll(firstSet.get(symbol));
+        if (!ruleFirstSet.contains("%empty")) {
+          isEps = false;
+          ruleFirstSet.remove("%empty");
+          break;
+        }
+      }
+    }
+
+    if (isEps) ruleFirstSet.add("%empty");
+    return ruleFirstSet;
+  }
+
   public static Map<String, Set<String>> firstSet(Map<String, List<List<String>>> rules) {
     Map<String, Set<String>> firstSet = new HashMap<>();
     Graph<String, DefaultEdge> firstGraph = new DefaultDirectedGraph<>(DefaultEdge.class);
@@ -372,7 +414,6 @@ public class Simplifications {
         new KosarajuStrongConnectivityInspector<>(followGraph);
     List<Graph<String, DefaultEdge>> components = scAlg.getStronglyConnectedComponents();
     reverse(components);
-    logger.atInfo().log("Components = %s", components);
 
     Map<String, Integer> symbolToId = new HashMap<>();
     for (int i = 0; i < components.size(); i++) {
